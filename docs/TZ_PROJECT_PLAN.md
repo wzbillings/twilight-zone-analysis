@@ -101,7 +101,7 @@ The physical placement of the targets store remains undecided. Fast local storag
 
 ### Configuration contract and relocation
 
-The public project will eventually resolve external roots through machine-local configuration/environment variables:
+The public project resolves external roots through machine-local configuration/environment variables:
 
 | Variable | Intended role |
 | --- | --- |
@@ -111,7 +111,7 @@ The public project will eventually resolve external roots through machine-local 
 | `TZ_LOGS_ROOT` | Local runtime logs; durable acquisition provenance belongs with observations. |
 | `TZ_TARGETS_STORE` | Optional targets cache location; fallback and physical placement remain undecided. |
 
-This is an intended contract, **not implemented support**. Moving data to another drive should require changing local configuration only, not committed R code. Relative corpus manifests should remain valid when a root moves. No drive letters, actual paths, environment files, or path helpers are added here.
+Job 2 implements this contract; see [configuration and helper semantics](STORAGE_CONFIGURATION.md). Moving data requires changing machine-local configuration only, not committed R code. Relative corpus manifests remain valid when a root moves. No actual paths are selected or real directories created. Job 3 will bootstrap storage. An unset optional targets store returns `NULL`; targets wiring and placement remain deferred.
 
 ### Safety boundary and transition
 
@@ -119,7 +119,7 @@ Physical separation is the primary boundary: public reproducible methods and saf
 
 Earlier instructions to store real inputs under `data/raw/`, including its ratings, metadata, video, audio, and transcripts subdirectories, are superseded. Existing directories and ignore guards remain; repo-local `data/` is reserved for synthetic fixtures, tiny explicitly publishable examples, or safe derived results. Do not populate legacy paths with actual sources.
 
-`R/00_paths.R` still returns repo-local raw/interim/features/analytic paths. The ingestion, spine, validation, and `_targets.R` placeholders still assume a selected rating snapshot joined to the episode spine. They are unchanged implementation debt, not the new storage or reception contract. The provisional data dictionary labels these legacy interfaces. The earlier `twilight-zone-ratings.qmd` exploration is preserved, not adopted as an acquisition workflow.
+`R/00_paths.R` now provides explicit external-domain helpers; the unused repo-local raw/interim/features/analytic helpers have been removed. The ingestion, spine, validation, and `_targets.R` placeholders still assume a selected rating snapshot joined to the episode spine. Those pipeline assumptions remain implementation debt, not the new storage or reception contract. The provisional data dictionary labels these legacy interfaces. The earlier `twilight-zone-ratings.qmd` exploration is preserved, not adopted as an acquisition workflow.
 
 ## Public repository organization
 
@@ -135,7 +135,7 @@ Reception measurements belong in separate tables. Coverage, runtime differences,
 
 This architectural documentation update is Job 1. It does not create local stores, acquire data, implement API clients or snapshot writing, change dependencies, configure Windows automation, or modify the targets DAG.
 
-**Job 2:** implement the machine-local storage/path contract and address legacy repo-local path assumptions. Do not begin that work as part of this update.
+**Job 2 is implemented:** machine-local storage/path helpers replace the legacy repo-local data helpers. **Job 3** will bootstrap real storage and the local observations repository; it has not begun.
 
 Later jobs can define observation schemas, provider crosswalks, collection cadence and provenance; collect modern snapshots prospectively; and encode historical audience observations separately. Implement one source family at a time. Feature extraction phases below remain candidate research work; final inferential models, variable selection, and conclusions require human decisions.
 

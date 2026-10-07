@@ -1,0 +1,12 @@
+# Copy to ignored .Renviron, supply absolute paths, restart R.
+# Use forward slashes; quote paths containing spaces. No directories are created.
+# Required when requesting structured local-only Git-tracked observations:
+TZ_OBSERVATIONS_ROOT=""
+# Required when requesting the external non-Git source corpus:
+TZ_CORPUS_ROOT=""
+# Required when requesting external non-Git derived artifacts and caches:
+TZ_DERIVED_ROOT=""
+# Required when requesting external non-Git runtime logs:
+TZ_LOGS_ROOT=""
+# Optional existing cache directory; not yet consumed by targets:
+TZ_TARGETS_STORE=""

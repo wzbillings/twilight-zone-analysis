@@ -62,9 +62,9 @@ Follow the four storage domains defined in [the project plan](docs/TZ_PROJECT_PL
 - **Corpus:** external non-Git storage for potentially copyrighted or large sources, including media, transcripts, captions, and archival scans. No `.git` repository may govern this store.
 - **Derived/cache storage:** external non-Git storage for reproducible intermediates, embeddings, feature tables, temporary artifacts, logs, and caches. Material that reproduces source content stays outside Git even when derived.
 
-The intended configuration contract uses machine-local `TZ_OBSERVATIONS_ROOT`, `TZ_CORPUS_ROOT`, `TZ_DERIVED_ROOT`, `TZ_LOGS_ROOT`, and optional `TZ_TARGETS_STORE`. Do not commit absolute storage paths. Relocation must eventually require local configuration changes only. Path helpers and variable support are deferred to Job 2; do not assume they exist. The physical targets-store location remains undecided.
+The implemented configuration contract uses machine-local `TZ_OBSERVATIONS_ROOT`, `TZ_CORPUS_ROOT`, `TZ_DERIVED_ROOT`, `TZ_LOGS_ROOT`, and optional `TZ_TARGETS_STORE`. Do not commit absolute storage paths. Relocation requires local configuration changes only. Path helpers and validation are implemented in `R/00_paths.R`; see [storage configuration](docs/STORAGE_CONFIGURATION.md). Helpers require existing roots and never create directories. Bootstrapping is deferred to Job 3. The physical targets-store location remains undecided.
 
-Existing repo-local `data/raw` assumptions are superseded. Retained `data/` directories are reserved for synthetic fixtures, tiny explicitly publishable examples, or safe derived results, not actual raw sources. Do not populate the legacy directories while the path refactor is pending. Backups matter, but their design and implementation are outside this architecture's current scope.
+Existing repo-local `data/raw` assumptions are superseded. Retained `data/` directories are reserved for synthetic fixtures, tiny explicitly publishable examples, or safe derived results, not actual raw sources. Do not populate the legacy directories with real sources; the ambiguous legacy path helpers have been removed. Backups matter, but their design and implementation are outside this architecture's current scope.
 
 A public repository layout may evolve toward:
 

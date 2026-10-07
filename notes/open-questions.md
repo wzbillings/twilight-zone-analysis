@@ -11,4 +11,4 @@
 9. Should raw frame/window-level features be retained, or only episode summaries?
 10. Which historical audience units, broadcast contexts, and source definitions must be preserved before comparison with modern reception?
 
-Storage boundaries are decided in the [project plan](../docs/TZ_PROJECT_PLAN.md#storage-architecture). Local root configuration and targets-cache placement remain implementation decisions; do not create stores or implement paths in this documentation job.
+Storage boundaries are decided in the [project plan](../docs/TZ_PROJECT_PLAN.md#storage-architecture). The [path/configuration layer](../docs/STORAGE_CONFIGURATION.md) is implemented. Actual local roots and targets-cache placement remain user decisions; storage bootstrapping is Job 3.

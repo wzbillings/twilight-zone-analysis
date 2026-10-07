@@ -21,9 +21,9 @@ The [project plan](docs/TZ_PROJECT_PLAN.md#storage-architecture) defines four st
 
 Physical separation protects source material and preserves hard-to-reconstruct observations without versioning large regenerable artifacts. Never put raw copyrighted media or transcripts in this public working tree, commit them, or push them. Derived text/media can still reproduce copyrighted content. `.gitignore` remains defense-in-depth, not the primary boundary or permission to redistribute.
 
-The intended machine-local configuration contract is `TZ_OBSERVATIONS_ROOT`, `TZ_CORPUS_ROOT`, `TZ_DERIVED_ROOT`, `TZ_LOGS_ROOT`, and optional `TZ_TARGETS_STORE`. These variables are **not implemented yet**. Moving from the current data SSD to a future dedicated drive should eventually require changing local configuration only, without editing committed code. No actual paths are selected; targets-cache placement remains open. Backups are important but outside the current architecture scope.
+Machine-local storage configuration is implemented in `R/00_paths.R`. See [storage setup and helper semantics](docs/STORAGE_CONFIGURATION.md) and [.Renviron.example](.Renviron.example) for `TZ_OBSERVATIONS_ROOT`, `TZ_CORPUS_ROOT`, `TZ_DERIVED_ROOT`, `TZ_LOGS_ROOT`, and optional `TZ_TARGETS_STORE`. The four external roots must be separate existing directories outside this project. Moving drives requires only local configuration changes. Helpers never create directories; Job 3 will bootstrap storage. The optional targets store is not wired into targets, and its placement remains open. Backups remain outside this scope.
 
-Existing `data/raw`, `data/interim`, `data/features`, and `data/analytic` path assumptions are superseded. Retained repo-local `data/` directories are for synthetic fixtures, tiny explicitly publishable examples, or safe derived results only. Job 2 will refactor the path helpers; do not supply real inputs to legacy paths. Existing output ignore rules remain in place.
+Existing `data/raw`, `data/interim`, `data/features`, and `data/analytic` path assumptions are superseded. Retained repo-local `data/` directories are for synthetic fixtures, tiny explicitly publishable examples, or safe derived results only. The ambiguous legacy data helpers have been removed; use explicit domain helpers. Existing output ignore rules remain in place.
 
 ## Planned pipeline
 
@@ -45,7 +45,7 @@ Open `twilight-zone-ratings.Rproj` with the project root as the working director
 
 Planned R dependencies are `targets`, `tarchetypes`, `tidyverse`, `lubridate`, `janitor`, `arrow`, `qs`, `tidymodels`, `glmnet`, `broom`, `tidytext`, `textrecipes`, and `testthat` for tests. Quarto is the reporting CLI. Likely Python dependencies are listed in `python/requirements.txt`; FFmpeg will be a separate system dependency. Python help uses only the standard library.
 
-After Job 2 configures external storage, subsequent jobs implement the functions, and dependencies and inputs are deliberately configured, the intended command is:
+After subsequent jobs bootstrap external storage, implement the functions, and configure dependencies and inputs, the intended command is:
 
 ```r
 targets::tar_make()
@@ -59,6 +59,6 @@ Future report chunks can use `targets::tar_read()` for pipeline outputs. The cur
 
 Use snake_case and explicit tibble columns. See `notes/data-dictionary.md` for provisional schemas, `notes/coding-decisions.md` for the decision log, and `notes/open-questions.md` for unresolved choices. Provider-specific measurement definitions, collection cadence, video file naming, Season 4 treatment, and embeddings remain undecided.
 
-The two files under `tests/testthat/` contain skipped future checks. Once implemented, run them from the project root with `testthat::test_dir("tests/testthat")` using synthetic fixtures.
+Run the storage tests from the project root with `testthat::test_dir("tests/testthat")`. They use only temporary synthetic filesystem fixtures. The two existing analysis test files still contain skipped future checks. `testthat` and its `withr` dependency must be available in the test environment; the existing lockfile does not yet include the planned test/pipeline stack.
 
 The pre-existing `twilight-zone-ratings.qmd` is an earlier single-rating exploration, not the complete reception strategy or the future acquisition workflow. It and the `renv` files remain unchanged; do not run the old report to populate the new storage domains.
