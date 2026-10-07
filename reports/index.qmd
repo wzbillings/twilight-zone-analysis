@@ -1,0 +1,69 @@
+---
+title: "Twilight Zone Ratings"
+---
+
+Scaffold only. No data have been collected and no analysis has been performed.
+
+## Overview
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Research question
+
+Which episode-level time, metadata, transcript, video, and audio features are associated with modern viewer ratings of the original 1959–1964 series?
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Data sources
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Episode spine validation
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Ratings over time
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Metadata features
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Transcript features
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Video features
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Audio features
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Combined analytic dataset
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Models
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Model comparison
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Sensitivity analyses
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Limitations
+
+This is an observational, exploratory analysis. Viewer selection, retrospective reputation, correlated features, and a small episode sample limit interpretation; associations do not establish causal effects.
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
+
+## Next steps
+
+TODO: Develop this section after local data, methods, and validated pipeline outputs are available.

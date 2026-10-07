@@ -1,0 +1,41 @@
+---
+title: "Methods"
+---
+
+Scaffold only; no results are available.
+
+## Episode identifiers and sources
+
+TODO: Document the finalized definitions and outputs.
+
+## Ratings and temporal features
+
+TODO: Document the finalized definitions and outputs.
+
+## Production metadata
+
+TODO: Document the finalized definitions and outputs.
+
+## Transcript processing
+
+TODO: Document the finalized definitions and outputs.
+
+## Video sampling and scene detection
+
+TODO: Document the finalized definitions and outputs.
+
+## Audio windows and aggregation
+
+TODO: Document the finalized definitions and outputs.
+
+## Episode-level joins and validation
+
+TODO: Document the finalized definitions and outputs.
+
+## Modeling and resampling
+
+TODO: Document the finalized definitions and outputs.
+
+## Sensitivity analyses
+
+TODO: Document the finalized definitions and outputs.

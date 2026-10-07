@@ -1,0 +1,474 @@
+---
+title: "The Twilight Zone: IMDb Ratings by Air Date"
+subtitle: "Public episode air dates, public IMDb-derived episode ratings, and a simple time-series decomposition"
+author: "Zane Billings"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    self-contained: true
+execute:
+  warning: false
+  message: false
+---
+
+## Purpose
+
+This report retrieves public episode air-date data and public IMDb-derived episode rating data for the original 1959--1964 run of *The Twilight Zone*. It then:
+
+1. joins episode metadata to ratings by production/order number;
+2. plots IMDb user rating by original air date; and
+3. performs a simple STL decomposition on monthly mean episode ratings.
+
+The decomposition is intentionally modest. The episode-level series is not a regularly spaced time series: episodes aired weekly during broadcast seasons, with hiatuses and gaps between seasons. For STL, the episode ratings are aggregated to monthly means, the missing months are linearly interpolated, and the resulting monthly series is decomposed with a 12-month frequency. Treat the seasonal component as a descriptive artifact of the broadcast calendar, not as a stable causal pattern in episode quality.
+
+## Setup
+
+```{r}
+required_packages <- c(
+  "dplyr",
+  "ggplot2",
+  "knitr",
+  "lubridate",
+  "readr",
+  "rvest",
+  "stringr",
+  "tibble",
+  "tidyr",
+  "zoo"
+)
+
+missing_packages <- setdiff(required_packages, rownames(installed.packages()))
+
+if (length(missing_packages) > 0) {
+  stop(
+    "Install these packages before rendering: ",
+    paste(missing_packages, collapse = ", "),
+    call. = FALSE
+  )
+}
+
+invisible(lapply(required_packages, library, character.only = TRUE))
+
+theme_set(theme_minimal(base_size = 12))
+```
+
+## Data sources
+
+Episode order, season, episode number, air date, title, and TVmaze link are read from the Epguides/TVmaze CSV export. IMDb-derived episode ratings are scraped from the public TV Heatmap page for *The Twilight Zone*.
+
+```{r}
+episode_url <- "https://epguides.com/common/exportToCSVmaze.asp?maze=787"
+rating_url <- "https://tvshows.denialof.services/the-twilight-zone-t0052520"
+```
+
+## Helper functions
+
+```{r}
+parse_epguides_airdate <- function(x) {
+  # Epguides uses two-digit years here, e.g. "02 Oct 59".
+  # Base R and lubridate may apply a pivot-year rule that would parse
+  # "59" as 2059, so force all two-digit years into the 1900s.
+  x <- stringr::str_squish(as.character(x))
+
+  date_parts <- stringr::str_match(
+    x,
+    "^(\\d{1,2})\\s+([A-Za-z]{3})\\s+(\\d{2})$"
+  )
+
+  bad_rows <- is.na(date_parts[, 1])
+  if (any(bad_rows)) {
+    stop(
+      "Could not parse these Epguides dates: ",
+      paste(unique(x[bad_rows]), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  full_year <- 1900L + as.integer(date_parts[, 4])
+  date_text <- sprintf(
+    "%s %s %s",
+    date_parts[, 2],
+    date_parts[, 3],
+    full_year
+  )
+
+  as.Date(date_text, format = "%d %b %Y")
+}
+
+scrape_episode_metadata <- function(url) {
+  raw <- readr::read_csv(url, show_col_types = FALSE, trim_ws = TRUE)
+  names(raw) <- make.names(names(raw))
+
+  raw |>
+    dplyr::transmute(
+      number = as.integer(number),
+      season = as.integer(season),
+      episode = as.integer(episode),
+      air_date = parse_epguides_airdate(airdate),
+      title = stringr::str_remove(title, "\\s+\\(60 min\\)$"),
+      tvmaze_link = tvmaze.link
+    ) |>
+    dplyr::arrange(number)
+}
+
+scrape_imdb_ratings <- function(url) {
+  rating_text <- rvest::read_html(url) |>
+    rvest::html_elements("a") |>
+    rvest::html_text2() |>
+    stringr::str_squish()
+
+  rating_text <- rating_text[stringr::str_detect(
+    rating_text,
+    "^\\d+(?:\\.\\d+)?\\s+.+"
+  )]
+
+  rating_parts <- stringr::str_match(
+    rating_text,
+    "^(\\d+(?:\\.\\d+)?)\\s+(.+)$"
+  )
+
+  tibble::tibble(
+    number = seq_len(nrow(rating_parts)),
+    imdb_rating = as.numeric(rating_parts[, 2]),
+    imdb_title = rating_parts[, 3]
+  )
+}
+```
+
+## Retrieve and join the data
+
+```{r}
+episodes <- scrape_episode_metadata(episode_url)
+ratings <- scrape_imdb_ratings(rating_url)
+
+stopifnot(nrow(episodes) == 156L)
+stopifnot(nrow(ratings) == 156L)
+
+# Join by episode order. This is safer than joining by title because punctuation,
+# hyphenation, and "60 min" annotations vary across sources.
+twilight_zone <- episodes |>
+  dplyr::left_join(ratings, by = "number") |>
+  dplyr::arrange(number)
+
+stopifnot(!any(is.na(twilight_zone$imdb_rating)))
+
+readr::write_csv(twilight_zone, "twilight_zone_ratings_by_airdate.csv")
+
+twilight_zone |>
+  dplyr::slice_head(n = 10) |>
+  knitr::kable(digits = 2)
+```
+
+## Basic summaries
+
+```{r}
+summary_stats <- twilight_zone |>
+  dplyr::summarise(
+    n_episodes = dplyr::n(),
+    first_air_date = min(air_date),
+    last_air_date = max(air_date),
+    mean_rating = mean(imdb_rating),
+    median_rating = median(imdb_rating),
+    sd_rating = sd(imdb_rating),
+    min_rating = min(imdb_rating),
+    max_rating = max(imdb_rating)
+  )
+
+summary_stats |>
+  knitr::kable(digits = 2)
+```
+
+```{r}
+highest_rated <- twilight_zone |>
+  dplyr::slice_max(imdb_rating, n = 10, with_ties = TRUE) |>
+  dplyr::select(number, season, episode, air_date, title, imdb_rating)
+
+lowest_rated <- twilight_zone |>
+  dplyr::slice_min(imdb_rating, n = 10, with_ties = TRUE) |>
+  dplyr::select(number, season, episode, air_date, title, imdb_rating)
+
+highest_rated |>
+  knitr::kable(digits = 1, caption = "Highest-rated episodes")
+
+lowest_rated |>
+  knitr::kable(digits = 1, caption = "Lowest-rated episodes")
+```
+
+## Episode rating by original air date
+
+```{r}
+rating_plot <- ggplot(
+  twilight_zone,
+  aes(x = air_date, y = imdb_rating)
+) +
+  geom_line(linewidth = 0.35, alpha = 0.7) +
+  geom_point(size = 1.6, alpha = 0.85) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    se = FALSE,
+    linewidth = 0.8,
+    span = 0.25
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  scale_y_continuous(limits = c(5, 10), breaks = seq(5, 10, by = 1)) +
+  labs(
+    title = "The Twilight Zone IMDb rating by original air date",
+    subtitle = "Original 1959--1964 series; line connects episodes in air-date/order sequence",
+    x = "Original air date",
+    y = "IMDb user rating",
+    caption = "Air dates: Epguides/TVmaze CSV export. Ratings: TV Heatmap page using IMDb episode ratings."
+  )
+
+rating_plot
+```
+
+```{r}
+ggsave(
+  filename = "twilight_zone_ratings_by_airdate.png",
+  plot = rating_plot,
+  width = 9,
+  height = 5,
+  dpi = 300
+)
+```
+
+## Prepare a regular monthly series for decomposition
+
+STL requires regular spacing. The original episode series is not regular, so the decomposition below uses monthly mean ratings.
+
+Steps:
+
+1. Collapse episode-level ratings to mean rating by month.
+2. Complete the full monthly sequence from the first to last air date.
+3. Interpolate months without aired episodes so that STL has a complete regular series.
+4. Decompose the monthly series with `stats::stl()` using an annual frequency of 12.
+
+```{r}
+monthly_ratings <- twilight_zone |>
+  dplyr::mutate(month = lubridate::floor_date(air_date, unit = "month")) |>
+  dplyr::group_by(month) |>
+  dplyr::summarise(
+    mean_rating = mean(imdb_rating),
+    n_episodes = dplyr::n(),
+    .groups = "drop"
+  ) |>
+  dplyr::arrange(month)
+
+monthly_complete <- monthly_ratings |>
+  tidyr::complete(
+    month = seq.Date(min(month), max(month), by = "month")
+  ) |>
+  dplyr::arrange(month) |>
+  dplyr::mutate(
+    mean_rating_interpolated = zoo::na.approx(
+      mean_rating,
+      x = month,
+      na.rm = FALSE
+    ),
+    mean_rating_interpolated = zoo::na.locf(
+      mean_rating_interpolated,
+      na.rm = FALSE
+    ),
+    mean_rating_interpolated = zoo::na.locf(
+      mean_rating_interpolated,
+      fromLast = TRUE,
+      na.rm = FALSE
+    )
+  )
+
+monthly_complete |>
+  dplyr::slice_head(n = 15) |>
+  knitr::kable(digits = 2)
+```
+
+## STL decomposition
+
+```{r}
+start_year <- lubridate::year(min(monthly_complete$month))
+start_month <- lubridate::month(min(monthly_complete$month))
+
+rating_ts <- ts(
+  monthly_complete$mean_rating_interpolated,
+  start = c(start_year, start_month),
+  frequency = 12
+)
+
+rating_stl <- stl(
+  rating_ts,
+  s.window = "periodic",
+  robust = TRUE
+)
+
+stl_components <- as.data.frame(rating_stl$time.series) |>
+  tibble::as_tibble() |>
+  dplyr::mutate(
+    month = monthly_complete$month,
+    observed = as.numeric(rating_ts),
+    aired_episode_month = !is.na(monthly_complete$mean_rating),
+    .before = seasonal
+  )
+
+stl_long <- stl_components |>
+  dplyr::select(month, observed, trend, seasonal, remainder) |>
+  tidyr::pivot_longer(
+    cols = c(observed, trend, seasonal, remainder),
+    names_to = "component",
+    values_to = "value"
+  ) |>
+  dplyr::mutate(
+    component = factor(
+      component,
+      levels = c("observed", "trend", "seasonal", "remainder")
+    )
+  )
+
+stl_plot <- ggplot(stl_long, aes(x = month, y = value)) +
+  geom_line(linewidth = 0.45) +
+  facet_wrap(~component, ncol = 1, scales = "free_y") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(
+    title = "STL decomposition of monthly mean episode ratings",
+    subtitle = "Monthly means are linearly interpolated across months without aired episodes",
+    x = "Month",
+    y = NULL,
+    caption = "Interpret seasonality cautiously: this is a broadcast-calendar series with off-season gaps."
+  )
+
+stl_plot
+```
+
+```{r}
+ggsave(
+  filename = "twilight_zone_monthly_rating_stl.png",
+  plot = stl_plot,
+  width = 8,
+  height = 7,
+  dpi = 300
+)
+```
+
+## Decomposition summary
+
+```{r}
+trend_peak <- stl_components |>
+  dplyr::slice_max(trend, n = 1, with_ties = FALSE)
+
+trend_trough <- stl_components |>
+  dplyr::slice_min(trend, n = 1, with_ties = FALSE)
+
+seasonal_peak <- stl_components |>
+  dplyr::mutate(month_name = month.abb[lubridate::month(month)]) |>
+  dplyr::group_by(month_name) |>
+  dplyr::summarise(
+    mean_seasonal = mean(seasonal),
+    .groups = "drop"
+  ) |>
+  dplyr::slice_max(mean_seasonal, n = 1, with_ties = FALSE)
+
+seasonal_trough <- stl_components |>
+  dplyr::mutate(month_name = month.abb[lubridate::month(month)]) |>
+  dplyr::group_by(month_name) |>
+  dplyr::summarise(
+    mean_seasonal = mean(seasonal),
+    .groups = "drop"
+  ) |>
+  dplyr::slice_min(mean_seasonal, n = 1, with_ties = FALSE)
+
+decomp_summary <- tibble::tibble(
+  quantity = c(
+    "Observed monthly mean rating: minimum",
+    "Observed monthly mean rating: maximum",
+    "STL trend: minimum",
+    "STL trend: maximum",
+    "Seasonal component: SD",
+    "Remainder component: SD",
+    "Months with aired episodes",
+    "Months after completing calendar sequence"
+  ),
+  value = c(
+    round(min(monthly_complete$mean_rating, na.rm = TRUE), 2),
+    round(max(monthly_complete$mean_rating, na.rm = TRUE), 2),
+    round(min(stl_components$trend, na.rm = TRUE), 2),
+    round(max(stl_components$trend, na.rm = TRUE), 2),
+    round(sd(stl_components$seasonal, na.rm = TRUE), 2),
+    round(sd(stl_components$remainder, na.rm = TRUE), 2),
+    sum(!is.na(monthly_complete$mean_rating)),
+    nrow(monthly_complete)
+  )
+)
+
+decomp_summary |>
+  knitr::kable()
+```
+
+The STL trend reaches its lowest value around `r format(trend_trough$month, "%B %Y")` (`r round(trend_trough$trend, 2)`) and its highest value around `r format(trend_peak$month, "%B %Y")` (`r round(trend_peak$trend, 2)`). In this descriptive monthly decomposition, the strongest positive average seasonal component occurs in `r seasonal_peak$month_name`, and the strongest negative average seasonal component occurs in `r seasonal_trough$month_name`.
+
+The main substantive reading is that the show has large episode-to-episode variability, with several high-rating peaks rather than a clean monotone trend. The decomposition is useful as a descriptive smoothing device, but it should not be overinterpreted as evidence of a real annual quality cycle.
+
+## Optional: episode-index decomposition
+
+As a sensitivity check, one can ignore calendar time and decompose by episode order. This treats episodes as evenly spaced and uses an approximate season length. That assumption is also artificial, but it keeps the analysis closer to episode order and avoids interpolating off-season calendar months.
+
+```{r}
+median_season_length <- twilight_zone |>
+  dplyr::count(season) |>
+  dplyr::summarise(median_n = median(n)) |>
+  dplyr::pull(median_n)
+
+episode_order_ts <- ts(
+  twilight_zone$imdb_rating,
+  frequency = median_season_length
+)
+
+episode_order_stl <- stl(
+  episode_order_ts,
+  s.window = "periodic",
+  robust = TRUE
+)
+
+episode_stl_components <- as.data.frame(episode_order_stl$time.series) |>
+  tibble::as_tibble() |>
+  dplyr::mutate(
+    number = twilight_zone$number,
+    observed = twilight_zone$imdb_rating,
+    .before = seasonal
+  )
+
+episode_stl_long <- episode_stl_components |>
+  dplyr::select(number, observed, trend, seasonal, remainder) |>
+  tidyr::pivot_longer(
+    cols = c(observed, trend, seasonal, remainder),
+    names_to = "component",
+    values_to = "value"
+  ) |>
+  dplyr::mutate(
+    component = factor(
+      component,
+      levels = c("observed", "trend", "seasonal", "remainder")
+    )
+  )
+
+ggplot(episode_stl_long, aes(x = number, y = value)) +
+  geom_line(linewidth = 0.45) +
+  facet_wrap(~component, ncol = 1, scales = "free_y") +
+  labs(
+    title = "Sensitivity check: STL decomposition by episode order",
+    subtitle = paste(
+      "Episodes are treated as evenly spaced; frequency set to median season length =",
+      median_season_length
+    ),
+    x = "Episode order",
+    y = NULL
+  )
+```
+
+## Reproducibility notes
+
+- Public ratings can change as IMDb user votes change.
+- The ratings page is scraped from visible page text rather than an official API.
+- The join is by episode order, not title, because the two sources have small title-format differences.
+- The monthly STL decomposition uses interpolation for missing off-season months; it is descriptive, not inferential.

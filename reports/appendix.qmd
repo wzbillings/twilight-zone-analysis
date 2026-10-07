@@ -1,0 +1,29 @@
+---
+title: "Appendix"
+---
+
+Scaffold only; no results are available.
+
+## Data dictionary
+
+TODO: Document the finalized definitions and outputs.
+
+## Validation diagnostics
+
+TODO: Document the finalized definitions and outputs.
+
+## Feature definitions
+
+TODO: Document the finalized definitions and outputs.
+
+## Model specifications
+
+TODO: Document the finalized definitions and outputs.
+
+## Supplementary tables and figures
+
+TODO: Document the finalized definitions and outputs.
+
+## Software environment
+
+TODO: Document the finalized definitions and outputs.

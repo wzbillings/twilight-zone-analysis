@@ -1,0 +1,20 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - reports/index.qmd
+    - reports/methods.qmd
+    - reports/appendix.qmd
+website:
+  title: "Twilight Zone Ratings"
+  navbar:
+    left:
+      - href: reports/index.qmd
+        text: Overview
+      - href: reports/methods.qmd
+        text: Methods
+      - href: reports/appendix.qmd
+        text: Appendix
+format:
+  html:
+    toc: true
