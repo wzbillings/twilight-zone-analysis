@@ -51,11 +51,22 @@ Permitted repository content may include code, configuration, documentation, bib
 
 The pipeline boundary begins with canonical local media files already available to the user. Do not add DRM/copy-protection circumvention or disc-ripping automation unless the user explicitly changes the project scope and requests it.
 
-Maintain `.gitignore` rules that default to excluding local source and derived media directories. Before every commit, inspect `git status` and the staged diff specifically for accidental media, transcripts, credentials, personal paths, large binaries, or generated artifacts.
+Keep real source data physically outside the public working tree. `.gitignore` is defense-in-depth, not the storage boundary. Maintain ignore rules for accidental local source and derived media placement. Before every commit, inspect `git status` and the staged diff specifically for accidental media, transcripts, credentials, personal paths, large binaries, or generated artifacts.
 
 ## Repository and data layout
 
-Prefer a clear separation between immutable inputs, reproducible derived artifacts, and analysis outputs. A typical layout may evolve toward:
+Follow the four storage domains defined in [the project plan](docs/TZ_PROJECT_PLAN.md#storage-architecture):
+
+- **Public analysis repository:** code, pipeline definitions, reports, tests with synthetic fixtures, schemas, configuration templates, documentation, and small explicitly publishable metadata or numerical results. Never use it for real raw acquisition outputs.
+- **Local observations repository:** a separate local-only Git repository, with no GitHub remote, for small structured snapshots, historical observations, crosswalks, manifests, and provenance. Essentially everything placed there should be suitable for local Git tracking; media, copied text, and caches do not belong there.
+- **Corpus:** external non-Git storage for potentially copyrighted or large sources, including media, transcripts, captions, and archival scans. No `.git` repository may govern this store.
+- **Derived/cache storage:** external non-Git storage for reproducible intermediates, embeddings, feature tables, temporary artifacts, logs, and caches. Material that reproduces source content stays outside Git even when derived.
+
+The intended configuration contract uses machine-local `TZ_OBSERVATIONS_ROOT`, `TZ_CORPUS_ROOT`, `TZ_DERIVED_ROOT`, `TZ_LOGS_ROOT`, and optional `TZ_TARGETS_STORE`. Do not commit absolute storage paths. Relocation must eventually require local configuration changes only. Path helpers and variable support are deferred to Job 2; do not assume they exist. The physical targets-store location remains undecided.
+
+Existing repo-local `data/raw` assumptions are superseded. Retained `data/` directories are reserved for synthetic fixtures, tiny explicitly publishable examples, or safe derived results, not actual raw sources. Do not populate the legacy directories while the path refactor is pending. Backups matter, but their design and implementation are outside this architecture's current scope.
+
+A public repository layout may evolve toward:
 
 ```text
 R/                  # reusable R functions used by the project
@@ -64,9 +75,7 @@ config/             # series-specific configuration
 metadata/           # small publishable manifests / metadata
 analysis/           # series-specific analyses and Quarto documents
 tests/               # automated tests using synthetic fixtures
-data/
-  raw/              # local-only inputs; never publish copyrighted media
-  derived/          # reproducible local-only media/text derivatives unless explicitly safe
+data/               # public-safe examples/results only; not a raw-data store
 _targets.R
 renv.lock
 ```
@@ -95,6 +104,8 @@ Reusable outputs should converge on well-defined tables such as:
 - `episode_features`.
 
 Validate required columns, types, uniqueness constraints, interval ordering, and key relationships at boundaries between pipeline stages. Do not allow silent schema drift.
+
+Keep the episode spine and episode feature summaries distinct from repeated reception observations. Modern ratings, vote counts, and attention/popularity measures retain provider, observation date, entity level, and provenance; never silently collapse them to one current rating. Historical Nielsen/ARB audience measurements are a separate measurement domain. Preserve their broadcast context, units, and source definitions. Final models and historical-to-modern comparisons require human scientific decisions.
 
 ## `targets` / `tarchetypes` standards
 

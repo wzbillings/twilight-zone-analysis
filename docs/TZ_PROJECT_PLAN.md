@@ -1,212 +1,151 @@
-# The Twilight Zone Multimodal Ratings Analysis: Project Plan
+# The Twilight Zone Multimodal Reception Analysis: Project Plan
 
 ## Purpose
 
-This project investigates which measurable episode-level features are associated with modern viewer ratings of the original 1959-1964 *The Twilight Zone* series.
+Investigate associations between textual, visual, audio, production, and temporal features and reception of the original 1959–1964 *The Twilight Zone*. This is exploratory, observational research; it does not establish causal effects or objective episode quality.
 
-The goal is not to prove what makes an episode objectively good. The defensible research question is:
+Reception is not a single current IMDb-style rating. The architecture must preserve:
 
-> What textual, visual, audio, production, and temporal features are associated with IMDb-style episode ratings for *The Twilight Zone*, after accounting for season and episode order?
+- contemporary historical audience reception, such as Nielsen/ARB broadcast measurements;
+- modern episode ratings and vote counts collected prospectively on repeated dates;
+- longitudinal changes in modern ratings and vote counts;
+- series-level dynamic attention/popularity, including TMDB metrics;
+- eventual historical-to-modern reputation comparisons.
 
-The project should be treated as exploratory, multimodal, and observational. Ratings reflect modern retrospective viewer opinion and are likely affected by cultural reputation, canon formation, nostalgia, and episode fame.
+Historical broadcast measurements and modern crowd ratings arise from different measurement processes. Keep their populations, units, dates, and source definitions distinct. Vote counts and popularity are attention measures, not interchangeable measures of approval. Modern retrospective opinion may reflect reputation, nostalgia, canon formation, and episode fame.
 
 ## High-level design
 
-All data sources should eventually be reduced to one episode-level analytic table, with one row per episode.
+R functions perform reusable computation; `targets` orchestrates dependencies and caching, and Quarto reports results. Python and external tools provide media capabilities where appropriate.
+
+Maintain a stable episode spine and episode feature summaries separately from reception observations. Modern observations retain provider, entity identifier/level, observation date, metric definition, value, and acquisition provenance. Historical observations retain broadcast context, measurement period, units, source references, and extraction provenance. Exact schemas and collection cadence remain future work.
+
+A one-row-per-episode feature table is still useful, but cannot represent all reception data. Repeated snapshots must not be silently collapsed to a current rating or joined in ways that duplicate feature rows. Series-level popularity must remain identifiable as series-level data. Analysis-specific joins, date selections, aggregation, and historical-to-modern comparisons require explicit scientific decisions.
+
+## Storage architecture
+
+These are conceptual domains, not actual filesystem paths or instructions to create directories now. The three local data domains must be outside the public working tree; the corpus and derived/cache areas must also be outside the observations Git working tree.
+
+### A. Public analysis repository
+
+`twilight-zone-analysis` remains public on GitHub. It contains R/Python source, `_targets.R`, Quarto analyses/reports, tests with synthetic fixtures, schemas, configuration templates, documentation, and small explicitly publishable metadata or derived numerical results. No credentials or machine-specific absolute paths belong here.
+
+Real raw acquisition outputs do not belong in this repository. Never place, commit, push, or publish potentially copyrighted media, transcripts, captions, stills, or archival source reproductions here. Review even numerical outputs before publication for rights and possible reconstruction of source content.
+
+### B. Local observations repository
+
+A separate local-only Git repository preserves small structured research observations that are historically valuable and may be impossible to reconstruct later. It will have **no GitHub remote** under the current design. Essentially everything placed in it should be suitable for local Git tracking; it is not a mixed store requiring extensive media exclusions.
+
+Conceptual layout:
 
 ```text
-Raw sources
-  ├── ratings
-  ├── air dates / episode order
-  ├── metadata: season, writer, director, cast, crew, runtime
-  ├── transcripts
-  └── video/audio files
-
-Feature extraction
-  ├── time/order features
-  ├── metadata features
-  ├── transcript/text features
-  ├── video/visual features
-  └── audio/sound features
-
-Episode-level analytic dataset
-  one row per episode
-
-Models and reports
-  ├── baseline time/order model
-  ├── metadata model
-  ├── text model
-  ├── video model
-  ├── audio model
-  ├── combined regularized model
-  └── sensitivity analyses
+observations/
+  modern/
+    imdb/
+    tmdb/
+    tvmaze/
+    omdb/
+  historical/
+    audience/
+    archival_extractions/
+  crosswalks/
+  manifests/
+  provenance/
+  README.md
 ```
 
-R should be the orchestration, data modeling, and reporting layer. Python and command-line tools can be used for video/audio extraction where appropriate. The recommended project backbone is an R `{targets}` pipeline with Quarto reporting.
+Contents include dated rating and vote-count snapshots, TMDB attention/popularity snapshots, canonical/provider crosswalks, acquisition-run provenance, manually extracted Nielsen/ARB measurements, and structured archival research results. Structured extractions mean observations and source references, not copied articles or transcript passages.
 
-## Scope
+The initial location will be on the user's current data SSD, with a possible later move to a dedicated physical drive. No actual path is chosen and no repository is created in this job. Local Git history preserves revisions; it does not make this material approved for public redistribution.
 
-### In scope
+### C. Local corpus store
 
-- Build a reproducible R/Quarto/targets project.
-- Create a validated master episode spine.
-- Join episode ratings, episode order, air dates, metadata, transcripts, and video/audio-derived features.
-- Extract interpretable text, video, and audio features.
-- Compare feature families against baseline season/order models.
-- Use regularized models and sensitivity analyses to avoid overfitting.
-- Produce a final Quarto report and a reusable analytic dataset.
+Large and/or potentially copyrighted sources live outside Git entirely. No `.git` repository may govern the corpus, including through a parent working tree.
 
-### Out of scope for the scaffold
+```text
+corpus/
+  transcripts/
+  video/
+    disc_images/
+    episodes/
+    clips/
+  audio/
+  subtitles/
+  images/
+  archival_sources/
+```
 
-- Downloading or distributing copyrighted video files.
-- Downloading or redistributing full copyrighted transcripts.
-- Claiming causal effects of features on ratings.
-- Building a production-grade machine-learning system.
-- Making the initial scaffold fully runnable before data are available.
+This includes ripped/remuxed episode files, disc images, extracted audio, copied transcripts, captions, frames/stills, and archival PDFs/scans whose redistribution rights are unclear. Listing these storage categories does not add ripping or acquisition automation; the media pipeline still begins with canonical local files already available to the user.
 
-## Legal and data-handling notes
+The observations repository may later hold manifests of corpus-relative paths, hashes, sizes, and provenance without tracking the media. Preserve source inputs as immutable files.
 
-*The Twilight Zone* is old, but age does not make it public domain. Treat transcripts and video files as copyrighted unless proven otherwise.
+### D. Local derived/cache storage
 
-Recommended practice:
+Reproducible or disposable machine-generated artifacts belong in external non-Git storage, especially when large:
 
-- Store video and transcript files locally only.
-- Do not commit raw video, audio, or transcript text to Git.
-- Publish only derived episode-level features, model summaries, and visualizations.
-- Use `.gitignore` to exclude `data/raw/video/`, `data/raw/audio/`, and `data/raw/transcripts/`.
-- If transcript scraping is implemented later, include clear comments that raw transcripts should not be redistributed.
+```text
+derived/
+  audio_features/
+  video_features/
+  embeddings/
+  transcript_features/
+  scene_detection/
+  temporary/
+targets/
+logs/
+```
+
+These conceptual areas need not share a physical parent directory. Regenerable intermediates and caches generally do not need Git history. Cleaned transcript text, sampled frames, audio derivatives, and proxies remain outside Git even when reproducible; derivation does not remove copyright concerns. Small safe results may be deliberately selected for publication.
+
+The physical placement of the targets store remains undecided. Fast local storage may be preferable to a future spinning HDD; this job makes no placement decision.
+
+### Configuration contract and relocation
+
+The public project will eventually resolve external roots through machine-local configuration/environment variables:
+
+| Variable | Intended role |
+| --- | --- |
+| `TZ_OBSERVATIONS_ROOT` | Root of the separate local observations Git repository. |
+| `TZ_CORPUS_ROOT` | Root of the unversioned source corpus. |
+| `TZ_DERIVED_ROOT` | Root of reproducible derived artifacts and temporary work. |
+| `TZ_LOGS_ROOT` | Local runtime logs; durable acquisition provenance belongs with observations. |
+| `TZ_TARGETS_STORE` | Optional targets cache location; fallback and physical placement remain undecided. |
+
+This is an intended contract, **not implemented support**. Moving data to another drive should require changing local configuration only, not committed R code. Relative corpus manifests should remain valid when a root moves. No drive letters, actual paths, environment files, or path helpers are added here.
+
+### Safety boundary and transition
+
+Physical separation is the primary boundary: public reproducible methods and safe outputs, local Git history for irreplaceable structured observations, and unversioned corpus/derived storage. `.gitignore` provides defense-in-depth only; it neither removes tracked files nor authorizes redistribution. Backups are important, especially for observations that cannot be reconstructed, but backup design and implementation are explicitly outside the current architecture scope.
+
+Earlier instructions to store real inputs under `data/raw/`, including its ratings, metadata, video, audio, and transcripts subdirectories, are superseded. Existing directories and ignore guards remain; repo-local `data/` is reserved for synthetic fixtures, tiny explicitly publishable examples, or safe derived results. Do not populate legacy paths with actual sources.
+
+`R/00_paths.R` still returns repo-local raw/interim/features/analytic paths. The ingestion, spine, validation, and `_targets.R` placeholders still assume a selected rating snapshot joined to the episode spine. They are unchanged implementation debt, not the new storage or reception contract. The provisional data dictionary labels these legacy interfaces. The earlier `twilight-zone-ratings.qmd` exploration is preserved, not adopted as an acquisition workflow.
+
+## Public repository organization
+
+Keep the existing `R/`, `python/`, `reports/`, `tests/`, `docs/`, and `notes/` organization. Add schemas, configuration templates, or publishable metadata deliberately when needed. The existing project file remains `twilight-zone-ratings.Rproj`; its filename does not change the public repository name. Existing `output/` ignore rules remain guards for local outputs, not a mandate to store large intermediates here.
 
 ## Central episode spine
 
-The first durable object should be a master episode table. Every downstream table should join to this table by `episode_id`, not by title alone.
+Use stable `series_id` and `episode_id` identifiers, never title alone. The spine should describe canonical identity, season/episode order where applicable, title, air date, runtime, and production metadata. Provider crosswalks connect observations to these identities; corpus manifests connect identities to local sources.
 
-Recommended columns:
+Reception measurements belong in separate tables. Coverage, runtime differences, missing modalities, and source availability need explicit validation. Final schemas, keys, and migrations from scaffold fields remain future implementation work.
 
-```text
-episode_id
-series
-season
-episode_in_season
-episode_overall
-title
-air_date
-rating
-rating_votes
-runtime_minutes
-writer
-director
-cast_count
-guest_cast_count
-transcript_path
-video_path
-audio_path
-```
+## Roadmap and scope
 
-Recommended validation columns:
+This architectural documentation update is Job 1. It does not create local stores, acquire data, implement API clients or snapshot writing, change dependencies, configure Windows automation, or modify the targets DAG.
 
-```text
-has_rating
-has_transcript
-has_video
-has_audio
-has_metadata
-runtime_metadata
-runtime_video
-runtime_difference_seconds
-transcript_word_count
-video_file_size_mb
-```
+**Job 2:** implement the machine-local storage/path contract and address legacy repo-local path assumptions. Do not begin that work as part of this update.
 
-## Recommended repository structure
+Later jobs can define observation schemas, provider crosswalks, collection cadence and provenance; collect modern snapshots prospectively; and encode historical audience observations separately. Implement one source family at a time. Feature extraction phases below remain candidate research work; final inferential models, variable selection, and conclusions require human decisions.
 
-```text
-twilight-zone-analysis/
-  ├── twilight-zone-analysis.Rproj
-  ├── README.md
-  ├── renv.lock
-  ├── renv/
-  ├── .Rprofile
-  ├── .gitignore
-  ├── _targets.R
-  ├── _quarto.yml
-  ├── reports/
-  │   ├── index.qmd
-  │   ├── methods.qmd
-  │   └── appendix.qmd
-  ├── R/
-  │   ├── 00_paths.R
-  │   ├── 01_ingest_metadata.R
-  │   ├── 02_ingest_ratings.R
-  │   ├── 03_episode_spine.R
-  │   ├── 04_text_features.R
-  │   ├── 05_video_features.R
-  │   ├── 06_audio_features.R
-  │   ├── 07_feature_engineering.R
-  │   ├── 08_models.R
-  │   ├── 09_plots.R
-  │   └── 10_validation.R
-  ├── python/
-  │   ├── requirements.txt
-  │   ├── detect_scenes.py
-  │   ├── extract_video_features.py
-  │   └── extract_audio_features.py
-  ├── data/
-  │   ├── raw/
-  │   │   ├── ratings/
-  │   │   ├── metadata/
-  │   │   ├── transcripts/
-  │   │   ├── video/
-  │   │   └── audio/
-  │   ├── interim/
-  │   ├── features/
-  │   └── analytic/
-  ├── output/
-  │   ├── figures/
-  │   ├── tables/
-  │   └── models/
-  ├── tests/
-  │   └── testthat/
-  └── notes/
-      ├── data-dictionary.md
-      ├── coding-decisions.md
-      └── open-questions.md
-```
+## Phase 1: Reception observations and time/order
 
-## Phase 1: Ratings and time/order analysis
+Establish the canonical episode spine and retain dated observations in the local observations repository. Start with provider-specific definitions for modern ratings, vote counts, and attention; preserve repeated dates rather than overwriting history. Record historical Nielsen/ARB observations with their original measurement context.
 
-Start with ratings, air dates, season, and episode order.
+Distinguish three clocks: original broadcast dates, modern observation dates, and acquisition/extraction timestamps. Rating-by-air-date plots describe retrospective opinion ordered by broadcast history; they are not longitudinal rating trajectories. Longitudinal analysis requires repeated observation dates.
 
-### Features
-
-```text
-episode_overall
-season
-episode_in_season
-air_date
-days_since_premiere
-days_since_previous_episode
-season_gap_indicator
-month
-year
-runtime_minutes
-is_season_4_hourlong
-```
-
-### Analyses
-
-- Rating by original air date.
-- Rating by episode order.
-- Rating distribution by season.
-- Monthly rating summaries.
-- Optional STL decomposition of monthly average ratings.
-- Baseline models:
-
-```r
-rating ~ season + episode_overall + runtime_minutes
-rating ~ factor(season) + splines::ns(episode_overall, df = 3)
-```
-
-Purpose: establish the baseline amount of rating variation explained by time/order alone.
+Candidate episode covariates include season, episode order, air date, days since premiere, broadcast gaps, runtime, and Season 4's hour-long format. Descriptive summaries can examine each reception domain separately before any model is selected.
 
 ## Phase 2: Production metadata features
 
@@ -289,7 +228,7 @@ fear / terror / panic / scream
 religion / heaven / hell / devil / angel
 ```
 
-Store lexicons in a data file such as `data/raw/metadata/theme_lexicons.csv` or `data/interim/theme_lexicons.rds`.
+Store human-authored, publishable lexicons in a reviewable public metadata/configuration file (for example, `metadata/theme_lexicons.csv`). Keep machine-generated intermediates under the external derived root.
 
 ### Flexible text features
 
@@ -329,7 +268,7 @@ input video
   └── sample frames at a fixed interval
 ```
 
-Raw video files should not be committed to Git.
+Keep source video in the external corpus and generated audio, proxies, and frames in external non-Git storage. None belongs in the public working tree.
 
 ### Shot/scene features
 
@@ -439,25 +378,18 @@ speech_rate_proxy
 
 These are useful but harder. They should not block the first complete version.
 
-## Phase 6: Combined analytic table
+## Phase 6: Episode features and analysis-specific tables
 
-The combined table should live at something like:
+Store reproducible episode feature tables under the external derived root, using Parquet when justified. Publish only deliberately reviewed, small safe numerical results.
 
-```text
-data/analytic/episode_features.parquet
-data/analytic/episode_features.csv
-```
-
-The dataset should include one row per episode and columns for rating, time/order, metadata, text, video, and audio features.
+Keep one row per episode in the feature summary. Join reception tables only for an explicitly selected analysis, with provider, metric, entity level, and observation/broadcast date retained as appropriate. Longitudinal tables have repeated observations; historical audience and series-level popularity require their own keys and semantics.
 
 Example feature groups:
 
 ```text
-# identifiers/outcome
+# episode identifiers
 episode_id
 title
-rating
-rating_votes
 
 # time/order
 season
@@ -507,183 +439,28 @@ mfcc_2_mean
 mfcc_3_mean
 ```
 
-## Modeling strategy
+## Analysis and reporting decisions
 
-The project has only 156 episode-level observations. Model complexity must be constrained.
+There are 156 episodes in the original series. Repeated observations do not create additional independent episodes. Final statistical models, outcome priorities, adjustment variables, resampling strategies, and causal interpretations are not selected by this architecture.
 
-### Primary outcome
+Candidate feature-family comparisons remain time/order, production metadata, text, video, audio, and combined summaries. Any later evaluation must respect observation dates, provider scales, entity level, and dependence among repeated measurements. Historical-to-modern reputation comparisons require an explicit comparability argument; do not pool historical audience measurements with crowd ratings by default.
 
-```text
-rating
-```
+Reports should distinguish:
 
-### Secondary outcomes
+- historical audience reception and its measurement limits;
+- modern ratings and vote counts at stated provider/date selections;
+- longitudinal changes in modern reception;
+- series-level attention/popularity over observation dates;
+- multimodal associations and eventual historical-to-modern comparisons;
+- missingness, source coverage, uncertainty, and limitations.
 
-```text
-rating_residual_after_season_order_adjustment
-top_quartile_rating_indicator
-log_rating_votes
-```
+Season 4 treatment, culturally canonical episodes, source/release differences, and feature stability remain potential sensitivity questions for later human review.
 
-The residualized rating outcome is especially useful:
+## Targets scaffold transition
 
-```r
-baseline <- lm(rating ~ factor(season) + episode_overall, data = episode_features)
-episode_features$rating_resid <- residuals(baseline)
-```
+The existing `_targets.R` is a non-runnable placeholder graph: metadata and one ratings table feed a spine, feature families are summarized by episode, validation gates assembly, and placeholder model/report targets follow. It is intentionally unchanged here.
 
-Then ask which features are associated with episodes rated higher than expected for their season/order.
-
-### Model sequence
-
-1. Baseline time/order model.
-2. Metadata model.
-3. Text-only incremental model.
-4. Video-only incremental model.
-5. Audio-only incremental model.
-6. Combined regularized model.
-7. Optional Bayesian shrinkage model.
-
-### Recommended model families
-
-- Linear regression for simple baselines.
-- Robust regression as a sensitivity analysis.
-- Ridge/elastic net regression for high-dimensional combined models.
-- Random forest or gradient boosting only as exploratory nonlinear checks.
-- Bayesian models with regularizing priors if using a smaller, theory-driven feature set.
-
-### Model comparison metrics
-
-```text
-RMSE
-MAE
-cross-validated R²
-observed-vs-predicted correlation
-incremental performance over baseline
-feature-selection stability
-```
-
-## Sensitivity analyses
-
-Recommended checks:
-
-1. Exclude Season 4, because those episodes are hour-long.
-2. Model residual rating after adjusting for season and episode order.
-3. Model top-quartile rating as a binary outcome.
-4. Exclude culturally canonical episodes to assess outlier influence.
-5. Use robust regression.
-6. Bootstrap or repeated-CV feature stability.
-7. Include source/release indicators if video files come from different transfers.
-8. Compare results with and without rating vote count adjustment.
-
-## Reporting plan
-
-The main Quarto report should answer:
-
-1. How do ratings vary across time, season, and episode order?
-2. Do production metadata features explain rating variation?
-3. Are higher-rated episodes textually different?
-4. Are higher-rated episodes visually different?
-5. Are higher-rated episodes sonically different?
-6. Do multimodal features improve prediction beyond season/order?
-7. Which associations are stable across sensitivity analyses?
-8. What can and cannot be concluded?
-
-## Suggested timeline
-
-Assuming data files are available and the project is part-time:
-
-| Phase | Duration | Output |
-|---|---:|---|
-| 1. Project setup | 2-3 days | R project, renv, targets, Quarto structure |
-| 2. Episode spine + ratings | 2-4 days | Validated master episode table |
-| 3. Metadata ingestion | 3-5 days | Cast/crew/writer/director features |
-| 4. Transcript cleaning | 1 week | Clean transcript corpus and transcript QC |
-| 5. Text feature extraction | 1 week | Episode-level text feature table |
-| 6. Video/audio pilot | 1 week | Extraction validated on 10 episodes |
-| 7. Full video extraction | 1-2 weeks | Visual and shot features for all episodes |
-| 8. Full audio extraction | 1 week | Audio feature table |
-| 9. Combined feature table | 3-5 days | Final analytic dataset |
-| 10. Modeling | 1-2 weeks | Baseline, family-specific, and combined models |
-| 11. Sensitivity analyses | 1 week | Robustness checks |
-| 12. Quarto report | 1 week | Final report and appendix |
-
-A minimal feasibility version can be done in 2-3 weeks:
-
-```text
-Week 1: episode spine, ratings, metadata, transcript ingestion
-Week 2: basic text features and 10-episode video/audio pilot
-Week 3: simple models and preliminary report
-```
-
-## Initial targets pipeline shape
-
-The scaffold should include a placeholder `_targets.R` with this conceptual shape:
-
-```r
-library(targets)
-library(tarchetypes)
-
-tar_option_set(
-  packages = c(
-    "tidyverse", "lubridate", "tidymodels", "glmnet",
-    "tidytext", "textrecipes", "arrow", "qs"
-  )
-)
-
-list(
-  tar_target(raw_episode_metadata, read_episode_metadata()),
-  tar_target(raw_ratings, read_episode_ratings()),
-  tar_target(episode_spine, build_episode_spine(raw_episode_metadata, raw_ratings)),
-
-  tar_target(transcript_files, list_transcript_files()),
-  tar_target(clean_transcripts, clean_all_transcripts(transcript_files)),
-  tar_target(text_features, extract_text_features(clean_transcripts)),
-
-  tar_target(cast_metadata, read_cast_metadata()),
-  tar_target(metadata_features, build_metadata_features(episode_spine, cast_metadata)),
-
-  tar_target(video_files, list_video_files()),
-  tar_target(scene_features, extract_scene_features_python(video_files)),
-  tar_target(frame_features, extract_frame_features_python(video_files)),
-  tar_target(video_features, combine_video_features(scene_features, frame_features)),
-
-  tar_target(audio_files, extract_audio_files_python(video_files)),
-  tar_target(audio_features, extract_audio_features_python(audio_files)),
-
-  tar_target(
-    episode_features,
-    build_episode_features(
-      episode_spine,
-      metadata_features,
-      text_features,
-      video_features,
-      audio_features
-    )
-  ),
-
-  tar_target(model_baseline, fit_baseline_model(episode_features)),
-  tar_target(model_metadata, fit_metadata_model(episode_features)),
-  tar_target(model_text, fit_text_model(episode_features)),
-  tar_target(model_video, fit_video_model(episode_features)),
-  tar_target(model_audio, fit_audio_model(episode_features)),
-  tar_target(model_combined, fit_combined_model(episode_features)),
-
-  tar_target(
-    model_comparison,
-    compare_models(
-      model_baseline,
-      model_metadata,
-      model_text,
-      model_video,
-      model_audio,
-      model_combined
-    )
-  ),
-
-  tar_render(report, "reports/index.qmd")
-)
-```
+Future storage and reception work must make external file dependencies explicit and keep computation in ordinary functions. The current graph and rating fields do not define the final longitudinal or historical acquisition design. Do not run it to validate this documentation update.
 
 ## Initial package/tool choices
 
@@ -733,30 +510,13 @@ ffprobe
 
 ## Open decisions for the user
 
-These do not block the scaffold, but they matter before real implementation:
+Before the relevant implementation or analysis:
 
-1. What exact rating source should be treated as canonical?
-2. Will rating vote counts be available?
-3. What file naming convention will be used for video files?
-4. What file naming convention will be used for transcripts?
-5. Are transcripts speaker-labeled?
-6. Are video files all from the same release/transfer/source quality?
-7. Should Season 4 be included in the main analysis or only in sensitivity analyses?
-8. Should the project use only interpretable features, or also embeddings/deep-learning features?
-9. Should raw derived frame/audio window-level features be retained, or only episode summaries?
-10. Should the final public repo include only code and synthetic/example data?
+1. Define provider-specific rating scales, vote-count availability, attention metrics, collection cadence, and observation schemas.
+2. Define historical audience units, broadcast context, source coverage, and extraction quality checks.
+3. Choose local roots through machine configuration and decide targets-store placement.
+4. Finalize video naming, transcript coverage/speaker labels, and source/release provenance.
+5. Decide Season 4 treatment, interpretable versus embedding features, and granular feature retention.
+6. Select scientific questions and appropriate analysis designs for each reception domain and eventual reputation comparisons.
 
-## Recommended first implementation target
-
-The first implementation should not try to do everything. It should scaffold the repository and create placeholders for the following deliverables:
-
-1. Validated episode spine.
-2. Text feature extractor.
-3. Video feature extractor interface.
-4. Audio feature extractor interface.
-5. Combined episode feature table.
-6. Baseline model functions.
-7. Placeholder Quarto report.
-8. Data dictionary and open-questions document.
-
-Once the scaffold exists, implement one source family at a time.
+The public repository's storage boundary and local-only observations policy are decided above; they are not open questions.

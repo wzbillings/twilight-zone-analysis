@@ -1,8 +1,14 @@
 # Data dictionary
 
-Provisional schemas document interfaces, not measured data. Feature definitions will be finalized before implementation. All episode-level tables use a nonmissing, unique character `episode_id`; granular outputs repeat this key. Missing measurements are NA, not zero. No raw text or media belongs in the combined analytic table.
+Provisional schemas document interfaces, not measured data. Feature definitions will be finalized before implementation. The episode spine and episode feature summaries use a nonmissing, unique character `episode_id`; granular and repeated reception observations repeat this key. Missing measurements are NA, not zero. No raw text or media belongs in the combined analytic table.
 
-## Episode spine
+## Architecture transition
+
+The [project plan](../docs/TZ_PROJECT_PLAN.md#storage-architecture) supersedes the original storage and single-rating assumptions. The spine and combined-table schemas below describe unchanged legacy scaffold interfaces, not the final reception model. Future schemas must separate repeated provider/date observations, historical audience measurements, and series-level attention from episode identity. No schema implementation is changed in this job.
+
+Real structured observations belong in the separate local-only observations Git repository; source transcripts/media belong in the external non-Git corpus; cleaned text and reproducible feature intermediates belong in external non-Git derived storage. Repo-local `data/` is for public-safe examples/results only.
+
+## Episode spine (legacy scaffold)
 
 | Column | R type | Meaning |
 | --- | --- | --- |
@@ -106,7 +112,7 @@ Provisional schemas document interfaces, not measured data. Feature definitions 
 | mfcc_2 | double | Granular measurement; definition, units, and sampling settings to be finalized. |
 | mfcc_3 | double | Granular measurement; definition, units, and sampling settings to be finalized. |
 
-## Combined analytic table
+## Combined analytic table (legacy selected-snapshot scaffold)
 
 One row per canonical episode, preserving the episode spine. Columns are the full episode spine schema plus non-key columns from metadata, text, video summaries, and audio summaries above. `episode_id` occurs once. No scene/frame/window rows may be joined directly to the spine. Missing modality coverage remains explicit; no imputation policy has been selected.
 
@@ -115,10 +121,10 @@ One row per canonical episode, preserving the episode spine. Columns are the ful
 - Episode metadata input contains spine metadata plus writer/director credits.
 - Ratings input contains episode_id, rating, vote_count, rating_source, and rating_observed_at.
 - Cast input contains episode_id, person_id, actor_name, and character_name (all character); multiple rows per episode are expected.
-- Clean transcripts contain episode_id and text (character), one row per episode, and must remain local.
+- Clean transcripts contain episode_id and text (character), one row per episode, and must remain in external non-Git derived storage.
 - Model functions will return a list with model_name (character), fit (model/workflow), and metrics (tibble).
 - Model comparison contains model_name and metric (character), estimate and std_error (double). Estimation and resampling choices remain pending.
 
 ## Local transcript filenames
 
-Use `sSSeeEE.txt`, with two-digit season and episode numbers in original broadcast order: for example, `s01e01.txt` and `s05e36.txt`. The filename stem identifies the episode for transcript mapping. Season counts are 36, 29, 37, 18, and 36, giving 156 local placeholders. Save pasted text as UTF-8. Empty files indicate missing transcripts; future ingestion must not treat them as zero-word transcripts. All transcript files remain excluded from Git.
+For transcripts in the external corpus, use `sSSeeEE.txt`, with two-digit season and episode numbers in original broadcast order: for example, `s01e01.txt` and `s05e36.txt`. The filename stem identifies the episode for transcript mapping. Season counts are 36, 29, 37, 18, and 36, giving 156 local placeholders. Save pasted text as UTF-8. Empty files indicate missing transcripts; future ingestion must not treat them as zero-word transcripts. Do not populate legacy repo-local transcript placeholders; actual transcripts belong outside the public working tree and outside all Git repositories.

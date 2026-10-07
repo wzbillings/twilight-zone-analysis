@@ -10,7 +10,7 @@ TODO: Develop this section after local data, methods, and validated pipeline out
 
 ## Research question
 
-Which episode-level time, metadata, transcript, video, and audio features are associated with modern viewer ratings of the original 1959–1964 series?
+How are episode-level time, metadata, transcript, video, and audio features associated with reception of the original 1959–1964 series? Distinguish historical audience measurements, repeated modern ratings and vote counts, longitudinal changes, and series-level attention. Historical-to-modern comparisons require a separate measurement-comparability design; see the [project plan](../docs/TZ_PROJECT_PLAN.md).
 
 TODO: Develop this section after local data, methods, and validated pipeline outputs are available.
 

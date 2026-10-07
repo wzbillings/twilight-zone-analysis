@@ -17,7 +17,8 @@ __pycache__/
 .venv/
 venv/
 
-# raw copyrighted / large local files
+# Legacy scaffold guards only: real source data belong outside this working tree.
+# .gitignore is defense-in-depth; see docs/TZ_PROJECT_PLAN.md#storage-architecture.
 data/raw/video/*
 data/raw/audio/*
 data/raw/transcripts/*
@@ -25,7 +26,7 @@ data/raw/transcripts/*
 !data/raw/audio/.gitkeep
 !data/raw/transcripts/.gitkeep
 
-# derived heavy outputs
+# Local output guards; large derived data and caches belong in external non-Git storage.
 output/models/*
 output/figures/*
 output/tables/*
